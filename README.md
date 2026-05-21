@@ -67,3 +67,51 @@ and task selection. They do not perform live Asana writes.
 ```powershell
 python -m unittest discover -s tests
 ```
+
+## FastMCP Asana Server
+
+The repo also includes `asana_mcp_server.py`, a stdio MCP server for Claude Code
+and OpenAI Codex. It exposes three tools:
+
+- `create_asana_task`
+- `list_asana_tasks`
+- `close_asana_task`
+
+Create a local `.env` from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Set these required values:
+
+```dotenv
+ASANA_TOKEN=your-asana-personal-access-token
+ASANA_WORKSPACE_GID=1214958615680522
+ASANA_PROJECT_GID=1214982995972383
+```
+
+Optional values:
+
+```dotenv
+ASANA_API_BASE=https://app.asana.com/api/1.0
+ASANA_IMPLEMENTED_SECTION_NAME=Implemented
+```
+
+Run the MCP server over stdio with uv:
+
+```bash
+uv run python asana_mcp_server.py
+```
+
+Example MCP client command configuration:
+
+```json
+{
+  "command": "uv",
+  "args": ["run", "python", "asana_mcp_server.py"]
+}
+```
+
+On Windows, use the same command from the repo root after installing `uv` and
+creating `.env`.
