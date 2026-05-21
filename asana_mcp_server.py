@@ -22,7 +22,7 @@ except ImportError:  # pragma: no cover - lets pure logic tests run before insta
 
 DEFAULT_ASANA_API_BASE = "https://app.asana.com/api/1.0"
 DEFAULT_IMPLEMENTED_SECTION_NAME = "Implemented"
-TASK_OPT_FIELDS = "gid,name,completed,memberships.section.name"
+TASK_OPT_FIELDS = "gid,name,due_on,completed,memberships.section.name"
 LAST_ACTIVE_TASKS: list["TaskSummary"] = []
 
 
@@ -40,12 +40,14 @@ class TaskSummary:
     list_number: int
     gid: str
     title: str
+    due_on: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "list_number": f"{self.list_number:03}",
+            "row_id": f"{self.list_number:03}",
             "asana_task_id": self.gid,
             "task_title": self.title,
+            "due_date": self.due_on or "",
         }
 
 
@@ -227,7 +229,7 @@ def summarize_active_tasks(
 ) -> list[TaskSummary]:
     active_tasks = [task for task in tasks if is_active_task(task, implemented_section_name)]
     return [
-        TaskSummary(index, task.get("gid", ""), task.get("name", ""))
+        TaskSummary(index, task.get("gid", ""), task.get("name", ""), task.get("due_on"))
         for index, task in enumerate(active_tasks, start=1)
     ]
 
@@ -237,14 +239,14 @@ def format_task_table(tasks: list[TaskSummary]) -> str:
         "================================================",
         "       Active Asana tasks",
         "================================================",
-        "list_number | Asana Task id | Task title",
+        "Row ID | Asana Task id | Task title | Due Date",
     ]
     if not tasks:
         lines.append("No active Asana tasks found.")
         return "\n".join(lines)
 
     for task in tasks:
-        lines.append(f"{task.list_number:03} | {task.gid} | {task.title}")
+        lines.append(f"{task.list_number:03} | {task.gid} | {task.title} | {task.due_on or ''}")
     return "\n".join(lines)
 
 
@@ -302,12 +304,12 @@ def resolve_task_reference(task_ref: str, tasks: list[TaskSummary]) -> tuple[lis
     exact_title = [task for task in tasks if task.title.casefold() == task_ref.strip().casefold()]
     if exact_title:
         if len(exact_title) > 1:
-            return exact_title, "Multiple tasks matched that title. Use a list_number or task id."
+            return exact_title, "Multiple tasks matched that title. Use a Row ID or task id."
         return exact_title, None
 
     partial_title = [task for task in tasks if text in task.title.casefold()]
     if len(partial_title) > 1:
-        return partial_title, "Multiple tasks matched that title. Use a list_number or task id."
+        return partial_title, "Multiple tasks matched that title. Use a Row ID or task id."
     if partial_title:
         return partial_title, None
 
@@ -450,7 +452,7 @@ def modify_asana_task(
         if len(targets) > 1:
             return {
                 "success": False,
-                "message": "Multiple tasks matched. Use a single list_number or task id.",
+                "message": "Multiple tasks matched. Use a single Row ID or task id.",
                 "matches": [task.to_dict() for task in targets],
             }
 
@@ -461,7 +463,7 @@ def modify_asana_task(
 
     updated_title = task.get("name") or new_description or target.title
     updated_due_on = task.get("due_on") or (due_on.isoformat() if due_on else None)
-    updated_summary = TaskSummary(target.list_number, target.gid, updated_title)
+    updated_summary = TaskSummary(target.list_number, target.gid, updated_title, updated_due_on)
     LAST_ACTIVE_TASKS = [
         updated_summary if cached_task.gid == target.gid else cached_task
         for cached_task in active_tasks

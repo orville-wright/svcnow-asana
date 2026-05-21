@@ -94,7 +94,13 @@ class AsanaMcpServerTest(unittest.TestCase):
     def test_active_task_filter_and_table_formatting(self):
         tasks = [
             {"gid": "1", "name": "Done", "completed": True, "memberships": []},
-            {"gid": "2", "name": "Open", "completed": False, "memberships": []},
+            {
+                "gid": "2",
+                "name": "Open",
+                "due_on": "2026-06-01",
+                "completed": False,
+                "memberships": [],
+            },
             {
                 "gid": "3",
                 "name": "Shipped",
@@ -108,8 +114,10 @@ class AsanaMcpServerTest(unittest.TestCase):
         self.assertFalse(is_active_task(tasks[2], "Implemented"))
 
         active = summarize_active_tasks(tasks, "Implemented")
-        self.assertEqual(active, [TaskSummary(1, "2", "Open")])
-        self.assertIn("001 | 2 | Open", format_task_table(active))
+        self.assertEqual(active, [TaskSummary(1, "2", "Open", "2026-06-01")])
+        table = format_task_table(active)
+        self.assertIn("Row ID | Asana Task id | Task title | Due Date", table)
+        self.assertIn("001 | 2 | Open | 2026-06-01", table)
 
     def test_resolve_task_reference_forms(self):
         tasks = [
@@ -201,13 +209,23 @@ class AsanaMcpServerTest(unittest.TestCase):
             "ASANA_WORKSPACE_GID": "workspace",
             "ASANA_PROJECT_GID": "project",
         }
-        api_tasks = [{"gid": "1", "name": "Open", "completed": False, "memberships": []}]
+        api_tasks = [
+            {
+                "gid": "1",
+                "name": "Open",
+                "due_on": "2026-06-01",
+                "completed": False,
+                "memberships": [],
+            }
+        ]
         with patch.dict(os.environ, env, clear=True):
             with patch.object(AsanaClient, "list_project_tasks", return_value=api_tasks):
                 result = list_asana_tasks()
 
         self.assertTrue(result["success"])
-        self.assertEqual(result["tasks"][0]["list_number"], "001")
+        self.assertEqual(result["tasks"][0]["row_id"], "001")
+        self.assertEqual(result["tasks"][0]["due_date"], "2026-06-01")
+        self.assertIn("Due Date", result["table"])
 
     def test_tool_close_success_with_mocked_client(self):
         env = {
