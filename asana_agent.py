@@ -10,7 +10,6 @@ from typing import Any
 
 import requests
 from rich.console import Console
-from rich.prompt import Prompt
 from rich.table import Table
 
 
@@ -106,11 +105,75 @@ def get_token() -> str:
     if token:
         return token
 
-    token = getpass("Please enter your Asana Personal Access Token: ").strip()
+    token = prompt_secret("Please enter your Asana Personal Access Token: ").strip()
     if not token:
         console.print("[red]No token provided. Exiting.[/red]")
         sys.exit(1)
     return token
+
+
+def prompt_user(prompt_text: str) -> str:
+    if sys.platform == "win32" and sys.stdin.isatty():
+        try:
+            return read_line_windows(prompt_text)
+        except OSError:
+            pass
+
+    return input(format_prompt(prompt_text))
+
+
+def prompt_secret(prompt_text: str) -> str:
+    if sys.platform == "win32" and sys.stdin.isatty():
+        try:
+            return read_line_windows(prompt_text, echo=False)
+        except OSError:
+            pass
+
+    return getpass(format_prompt(prompt_text))
+
+
+def format_prompt(prompt_text: str) -> str:
+    if prompt_text.endswith(" "):
+        return prompt_text
+    return f"{prompt_text} "
+
+
+def read_line_windows(prompt_text: str, echo: bool = True) -> str:
+    import msvcrt
+
+    console.print(prompt_text, end="")
+    chars: list[str] = []
+
+    while True:
+        char = msvcrt.getwch()
+
+        if char in {"\r", "\n"}:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return "".join(chars)
+
+        if char == "\x03":
+            raise KeyboardInterrupt
+
+        if char == "\x1a":
+            raise EOFError
+
+        if char in {"\x00", "\xe0"}:
+            msvcrt.getwch()
+            continue
+
+        if char in {"\b", "\x7f"}:
+            if chars:
+                chars.pop()
+                sys.stdout.write("\b \b")
+                sys.stdout.flush()
+            continue
+
+        if char.isprintable():
+            chars.append(char)
+            if echo:
+                sys.stdout.write(char)
+                sys.stdout.flush()
 
 
 def parse_due_date(value: str, today: date | None = None) -> date:
@@ -288,27 +351,25 @@ def select_tasks(identifier: str, tasks: list[TaskSummary]) -> tuple[list[TaskSu
     return partial_title, len(partial_title) > 1
 
 
-def resolve_close_targets(
-    identifier: str, tasks: list[TaskSummary], prompt: Prompt = Prompt
-) -> list[TaskSummary]:
+def resolve_close_targets(identifier: str, tasks: list[TaskSummary]) -> list[TaskSummary]:
     matches, ambiguous = select_tasks(identifier, tasks)
     if not ambiguous:
         return matches
 
     console.print("[yellow]I found more than one matching task.[/yellow]")
     display_tasks(matches)
-    answer = prompt.ask("Enter the list_number for the task to close")
+    answer = prompt_user("Enter the list_number for the task to close").strip()
     selected, _ = select_tasks(answer, matches)
     return selected
 
 
 def handle_create(client: AsanaClient) -> None:
-    description = Prompt.ask("Whats the description of the task?").strip()
+    description = prompt_user("Whats the description of the task?").strip()
     while not description:
-        description = Prompt.ask("Please enter a task description").strip()
+        description = prompt_user("Please enter a task description").strip()
 
     while True:
-        due_text = Prompt.ask("When is that task due by?").strip()
+        due_text = prompt_user("When is that task due by?").strip()
         try:
             due_on = parse_due_date(due_text)
             break
@@ -352,12 +413,12 @@ def handle_close(client: AsanaClient, recent_tasks: list[TaskSummary], message: 
 
     identifier = strip_close_words(message)
     if not identifier:
-        identifier = Prompt.ask("which task do you want to close?").strip()
+        identifier = prompt_user("which task do you want to close?").strip()
 
     targets = resolve_close_targets(identifier, tasks)
     while not targets:
         console.print("[yellow]I could not find a matching task.[/yellow]")
-        identifier = Prompt.ask("which task do you want to close?").strip()
+        identifier = prompt_user("which task do you want to close?").strip()
         targets = resolve_close_targets(identifier, tasks)
 
     for task in targets:
@@ -386,7 +447,7 @@ def run_chat() -> None:
 
     recent_tasks: list[TaskSummary] = []
     while True:
-        message = Prompt.ask("> ")
+        message = prompt_user("> ")
         intent = detect_intent(message)
 
         if intent == "exit":

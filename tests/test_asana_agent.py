@@ -4,6 +4,7 @@ import unittest
 from asana_agent import (
     TaskSummary,
     detect_intent,
+    format_prompt,
     is_active_task,
     parse_due_date,
     select_tasks,
@@ -93,6 +94,10 @@ class AsanaAgentTest(unittest.TestCase):
     def test_strip_close_words_preserves_identifier(self):
         self.assertEqual(strip_close_words("close the first task"), "first")
         self.assertEqual(strip_close_words("please mark 002 as done"), "002")
+
+    def test_format_prompt_adds_only_one_space(self):
+        self.assertEqual(format_prompt("> "), "> ")
+        self.assertEqual(format_prompt("Question?"), "Question? ")
 
 
 if __name__ == "__main__":
