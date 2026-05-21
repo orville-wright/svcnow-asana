@@ -113,20 +113,24 @@ def get_token() -> str:
 
 
 def prompt_user(prompt_text: str) -> str:
-    if sys.platform == "win32" and sys.stdin.isatty():
+    if sys.stdin.isatty():
         try:
-            return read_line_windows(prompt_text)
-        except OSError:
+            if sys.platform == "win32":
+                return read_line_windows(prompt_text)
+            return read_line_posix(prompt_text)
+        except (ImportError, OSError):
             pass
 
     return input(format_prompt(prompt_text))
 
 
 def prompt_secret(prompt_text: str) -> str:
-    if sys.platform == "win32" and sys.stdin.isatty():
+    if sys.stdin.isatty():
         try:
-            return read_line_windows(prompt_text, echo=False)
-        except OSError:
+            if sys.platform == "win32":
+                return read_line_windows(prompt_text, echo=False)
+            return read_line_posix(prompt_text, echo=False)
+        except (ImportError, OSError):
             pass
 
     return getpass(format_prompt(prompt_text))
@@ -174,6 +178,60 @@ def read_line_windows(prompt_text: str, echo: bool = True) -> str:
             if echo:
                 sys.stdout.write(char)
                 sys.stdout.flush()
+
+
+def read_line_posix(prompt_text: str, echo: bool = True) -> str:
+    import termios
+    import tty
+
+    console.print(prompt_text, end="")
+    chars: list[str] = []
+    file_descriptor = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(file_descriptor)
+
+    try:
+        tty.setraw(file_descriptor)
+        while True:
+            char = sys.stdin.read(1)
+
+            if char in {"\r", "\n"}:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                return "".join(chars)
+
+            if char == "\x03":
+                raise KeyboardInterrupt
+
+            if char == "\x04":
+                raise EOFError
+
+            if char == "\x1b":
+                consume_escape_sequence()
+                continue
+
+            if char in {"\b", "\x7f", "\x08"}:
+                if chars:
+                    chars.pop()
+                    sys.stdout.write("\b \b")
+                    sys.stdout.flush()
+                continue
+
+            if char.isprintable():
+                chars.append(char)
+                if echo:
+                    sys.stdout.write(char)
+                    sys.stdout.flush()
+    finally:
+        termios.tcsetattr(file_descriptor, termios.TCSADRAIN, old_settings)
+
+
+def consume_escape_sequence() -> None:
+    import select
+
+    while select.select([sys.stdin], [], [], 0)[0]:
+        char = sys.stdin.read(1)
+        if char.isalpha() or char == "~":
+            return
 
 
 def parse_due_date(value: str, today: date | None = None) -> date:
