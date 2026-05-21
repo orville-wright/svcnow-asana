@@ -71,10 +71,11 @@ python -m unittest discover -s tests
 ## FastMCP Asana Server
 
 The repo also includes `asana_mcp_server.py`, a stdio MCP server for Claude Code
-and OpenAI Codex. It exposes three tools:
+and OpenAI Codex. It exposes four tools:
 
 - `create_asana_task`
 - `list_asana_tasks`
+- `modify_asana_task`
 - `close_asana_task`
 
 Create a local `.env` from `.env.example`:

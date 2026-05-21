@@ -5,6 +5,7 @@ import unittest
 from datetime import date
 from unittest.mock import patch
 
+import asana_mcp_server
 from asana_mcp_server import (
     AsanaApiError,
     AsanaClient,
@@ -17,6 +18,7 @@ from asana_mcp_server import (
     is_active_task,
     list_asana_tasks,
     load_config,
+    modify_asana_task,
     parse_due_date,
     resolve_task_reference,
     summarize_active_tasks,
@@ -54,6 +56,9 @@ class FakeSession:
 
 
 class AsanaMcpServerTest(unittest.TestCase):
+    def setUp(self):
+        asana_mcp_server.LAST_ACTIVE_TASKS = []
+
     def test_load_config_requires_expected_env_values(self):
         with patch.dict(os.environ, {}, clear=True):
             with patch("asana_mcp_server.load_environment", return_value=None):
@@ -164,6 +169,18 @@ class AsanaMcpServerTest(unittest.TestCase):
         with self.assertRaisesRegex(AsanaApiError, "bad token"):
             client.list_project_tasks()
 
+    def test_client_modify_task_puts_only_requested_fields(self):
+        session = FakeSession(
+            [FakeResponse({"data": {"gid": "task-1", "name": "Updated", "due_on": "2026-06-01"}})]
+        )
+        client = AsanaClient(AsanaConfig("token", "workspace", "project"), session=session)
+
+        task = client.modify_task("task-1", description="Updated", due_on=date(2026, 6, 1))
+
+        self.assertEqual(task["name"], "Updated")
+        self.assertEqual(session.calls[0]["method"], "PUT")
+        self.assertEqual(session.calls[0]["json"]["data"], {"name": "Updated", "due_on": "2026-06-01"})
+
     def test_tool_create_success_with_mocked_client(self):
         env = {
             "ASANA_TOKEN": "token",
@@ -206,6 +223,47 @@ class AsanaMcpServerTest(unittest.TestCase):
 
         self.assertTrue(result["success"])
         self.assertEqual(result["closed_count"], 1)
+
+    def test_tool_modify_success_with_mocked_client(self):
+        env = {
+            "ASANA_TOKEN": "token",
+            "ASANA_WORKSPACE_GID": "workspace",
+            "ASANA_PROJECT_GID": "project",
+        }
+        api_tasks = [{"gid": "1", "name": "Open", "completed": False, "memberships": []}]
+        updated = {"gid": "1", "name": "Updated", "due_on": "2026-06-01"}
+        with patch.dict(os.environ, env, clear=True):
+            with patch.object(AsanaClient, "list_project_tasks", return_value=api_tasks):
+                with patch.object(AsanaClient, "modify_task", return_value=updated) as modify:
+                    result = modify_asana_task("001", description="Updated", due_date="2026-06-01")
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["asana_task_id"], "1")
+        self.assertEqual(result["task_title"], "Updated")
+        modify.assert_called_once_with("1", description="Updated", due_on=date(2026, 6, 1))
+
+    def test_tool_modify_requires_description_or_due_date(self):
+        result = modify_asana_task("001")
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["message"], "Provide a description, a due_date, or both.")
+
+    def test_tool_modify_rejects_multiple_matches(self):
+        env = {
+            "ASANA_TOKEN": "token",
+            "ASANA_WORKSPACE_GID": "workspace",
+            "ASANA_PROJECT_GID": "project",
+        }
+        api_tasks = [
+            {"gid": "1", "name": "Open A", "completed": False, "memberships": []},
+            {"gid": "2", "name": "Open B", "completed": False, "memberships": []},
+        ]
+        with patch.dict(os.environ, env, clear=True):
+            with patch.object(AsanaClient, "list_project_tasks", return_value=api_tasks):
+                result = modify_asana_task("top 2 tasks", description="Updated")
+
+        self.assertFalse(result["success"])
+        self.assertIn("Multiple tasks matched", result["message"])
 
 
 if __name__ == "__main__":

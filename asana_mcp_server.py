@@ -158,6 +158,23 @@ class AsanaClient:
             "data", {}
         )
 
+    def modify_task(
+        self,
+        task_gid: str,
+        description: str | None = None,
+        due_on: date | None = None,
+    ) -> dict[str, Any]:
+        data: dict[str, Any] = {}
+        if description is not None:
+            data["name"] = description
+        if due_on is not None:
+            data["due_on"] = due_on.isoformat()
+
+        if not data:
+            raise ValueError("Provide a new description, a new due date, or both.")
+
+        return self._request("PUT", f"/tasks/{task_gid}", json={"data": data}).get("data", {})
+
 
 def parse_due_date(value: str, today: date | None = None) -> date:
     base = today or date.today()
@@ -399,6 +416,66 @@ def close_asana_task(task_ref: str) -> dict[str, Any]:
     }
 
 
+def modify_asana_task(
+    task_ref: str,
+    description: str | None = None,
+    due_date: str | None = None,
+) -> dict[str, Any]:
+    """Modify an Asana task title/description and/or due date."""
+    global LAST_ACTIVE_TASKS
+
+    new_description = description.strip() if description is not None else None
+    if new_description == "":
+        return {"success": False, "message": "Description cannot be blank."}
+
+    try:
+        due_on = parse_due_date(due_date) if due_date and due_date.strip() else None
+        if new_description is None and due_on is None:
+            return {"success": False, "message": "Provide a description, a due_date, or both."}
+
+        config = load_config()
+        client = AsanaClient(config)
+        active_tasks = LAST_ACTIVE_TASKS or summarize_active_tasks(
+            client.list_project_tasks(), config.implemented_section_name
+        )
+        targets, resolution_error = resolve_task_reference(task_ref, active_tasks)
+        if resolution_error:
+            return {
+                "success": False,
+                "message": resolution_error,
+                "matches": [task.to_dict() for task in targets],
+            }
+        if not targets:
+            return {"success": False, "message": f"No active task matched {task_ref!r}."}
+        if len(targets) > 1:
+            return {
+                "success": False,
+                "message": "Multiple tasks matched. Use a single list_number or task id.",
+                "matches": [task.to_dict() for task in targets],
+            }
+
+        target = targets[0]
+        task = client.modify_task(target.gid, description=new_description, due_on=due_on)
+    except (AsanaConfigError, AsanaApiError, ValueError) as exc:
+        return {"success": False, "message": f"failed to modify task: {exc}"}
+
+    updated_title = task.get("name") or new_description or target.title
+    updated_due_on = task.get("due_on") or (due_on.isoformat() if due_on else None)
+    updated_summary = TaskSummary(target.list_number, target.gid, updated_title)
+    LAST_ACTIVE_TASKS = [
+        updated_summary if cached_task.gid == target.gid else cached_task
+        for cached_task in active_tasks
+    ]
+
+    return {
+        "success": True,
+        "asana_task_id": target.gid,
+        "task_title": updated_title,
+        "due_on": updated_due_on,
+        "message": f"modified task {target.gid}",
+    }
+
+
 def build_server() -> Any:
     if FastMCP is None:
         raise RuntimeError("fastmcp is required to run this MCP server. Install with `uv sync`.")
@@ -406,12 +483,13 @@ def build_server() -> Any:
     server = FastMCP(
         name="AsanaProjectServer",
         instructions=(
-            "Use these tools to create, list, and close tasks in the configured Asana project."
+            "Use these tools to create, list, modify, and close tasks in the configured Asana project."
         ),
     )
     server.tool()(create_asana_task)
     server.tool()(list_asana_tasks)
     server.tool()(close_asana_task)
+    server.tool()(modify_asana_task)
     return server
 
 
