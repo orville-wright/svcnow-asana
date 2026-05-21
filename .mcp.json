@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "asana": {
+      "command": "uv",
+      "args": ["run", "python", "asana_mcp_server.py"],
+      "cwd": "/home/dbrace/code/asana_challenge"
+    }
+  }
+}
