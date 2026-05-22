@@ -1,9 +1,9 @@
 # Asana Challenge
 
-A collection of tools for working with a specific Asana project via the Asana REST API. The repo contains three runnable interfaces — a terminal chatbot (`asana_agent.py`), a REPL copilot backed by the official Asana SDK (`asana_REPL_copilot.py`), and a FastMCP server for Claude Code / AI agent use (`asana_mcp_server.py`) — plus a credential validation helper and a set of early prototypes.
+A collection of tools for working with a specific Asana project via the Asana REST API. The repo contains one production-ready MCP server (`asana_mcp_server.py`) and two prototype conversational interfaces — a terminal chatbot and an SDK-backed REPL copilot — both housed in `prototypes/`, plus a credential validation helper and a set of early exploration scripts.
 
 
-## LOOM Demo video
+## LOOM Demo video  (4:50 mins)
 https://www.loom.com/share/70620a8a683448c6b0cb7883f977769a
 
 
@@ -21,19 +21,21 @@ https://www.loom.com/share/70620a8a683448c6b0cb7883f977769a
 
 ```
 asana_challenge/
-├── asana_agent.py          # Terminal chatbot (requests + rich)
-├── asana_mcp_server.py     # FastMCP stdio server (4 tools)
-├── asana_REPL_copilot.py   # REPL copilot (official Asana SDK)
-├── svcnow_a_challenge.py   # Credential / API validation helper
+├── asana_mcp_server.py              # FastMCP stdio server (4 tools)
+├── preflight_checker.py             # Credential / API validation helper
 ├── prototypes/
-│   ├── a_asana_1.py        # Workspace membership lookup (SDK)
-│   ├── b_asana_1.py        # Token verification (raw requests)
-│   └── c_asana_1.py        # User info + memberships (SDK)
+│   ├── asana_basic_REPL_agent.py   # Terminal chatbot (requests + rich)
+│   ├── asana_full_REPL_copilot.py  # REPL copilot (official Asana SDK)
+│   ├── a_asana_1.py                # Workspace membership lookup (SDK)
+│   ├── b_asana_1.py                # Token verification (raw requests)
+│   └── c_asana_1.py                # User info + memberships (SDK)
 ├── tests/
 │   ├── test_asana_agent.py
 │   └── test_asana_mcp_server.py
+├── serviceNOW_challenge_Dave-Brace.pdf
+├── serviceNOW_memo_2.pdf
 ├── .env.example
-├── .mcp.json               # MCP server wiring for Claude Code
+├── .mcp.json                        # MCP server wiring for Claude Code
 └── pyproject.toml
 ```
 
@@ -59,98 +61,7 @@ uv sync
 | `ASANA_API_BASE` | No | `https://app.asana.com/api/1.0` | Override for proxies |
 | `ASANA_IMPLEMENTED_SECTION_NAME` | No | `Implemented` | Section name to exclude from active tasks |
 
-If `ASANA_TOKEN` is not set when running `asana_agent.py`, the agent prompts for it without saving it.
-
----
-
-## asana_agent.py — Terminal Chatbot
-
-An interactive terminal chatbot built on `requests` and `rich`. Authenticates at startup, then accepts free-text commands in a REPL loop.
-
-### Run
-
-```bash
-uv run python asana_agent.py
-```
-
-On Windows (PowerShell):
-```powershell
-$env:ASANA_TOKEN="your-token"
-python asana_agent.py
-```
-
-### What it can do
-
-| Command examples | Action |
-|---|---|
-| `create a task` | Prompts for description and due date, then creates the task |
-| `show active tasks`, `list`, `display open tasks` | Lists active tasks as a rich table |
-| `close the first task`, `close 002`, `complete 1214982880426742` | Marks one or more tasks complete |
-| `mark done top 3` | Closes the first three tasks in the list |
-| `goodbye`, `quit`, `exit` | Exits |
-
-Tasks are displayed in a table with columns: **Row ID**, **Asana Task id**, **Task title**.
-
-### Supported due-date formats
-
-```
-today           tomorrow        next week
-3 days from now
-05/22/2026      5/22/26         2026-05-22
-May 22, 2026    May 22 2026
-```
-
-### Task selection syntax
-
-Tasks can be identified by:
-- **Row ID**: `001`, `2`, `003`
-- **Ordinal**: `first`, `second`, `third` … `tenth`
-- **Positional suffix**: `1st`, `2nd`, `3rd`
-- **Asana task GID**: full numeric GID
-- **Title**: exact or partial match (disambiguated interactively if ambiguous)
-- **Batch**: `top 3`, `top 5`
-
-### Manual verification steps
-
-1. `uv run python asana_agent.py`
-2. Create a task.
-3. `show active tasks` — confirm the new task appears.
-4. Close that task by row ID, GID, or title.
-5. `show active tasks` — confirm the task is no longer listed.
-6. `goodbye` to exit.
-
----
-
-## asana_REPL_copilot.py — SDK-based REPL Copilot
-
-An alternative REPL built on the **official Asana Python SDK** (`asana>=5.2.4`). It runs a scripted demo conversation first, then drops into an interactive loop.
-
-### Run
-
-```bash
-uv run python asana_REPL_copilot.py
-```
-
-Requires `ASANA_TOKEN` and `ASANA_PROJECT_GID` in the environment (or `.env`).
-
-### Features
-
-- **Multi-turn task creation**: inline title extraction from `create a task called X`, or step-by-step prompting if no title is found.
-- **Due-date parsing**: `today`, `tomorrow`, `tmrw`, `next week`, `YYYY-MM-DD`.
-- **List open tasks**: fetches all non-completed tasks and prints GID, name, and due date.
-- **Close a task**: keyword-matches the user's message against open task titles.
-- **Scripted demo feed**: replays a fixed set of turns before going interactive, useful for quick live demos.
-- **Clean SDK shutdown**: explicitly closes the Asana SDK thread pool to prevent hang on exit.
-
-### Scripted demo turns
-
-```
-I want to create a task
-Complete Take Home Assignment for Moveworks Product Management Interview
-Tomorrow
-What tasks are open?
-Can we close the Take Home one?
-```
+If `ASANA_TOKEN` is not set when running the prototype scripts, they prompt for it interactively without saving it.
 
 ---
 
@@ -167,7 +78,7 @@ A [FastMCP](https://github.com/jlowin/fastmcp) stdio MCP server that exposes fou
 | `close_asana_task` | `task_ref` | Mark one or more tasks complete |
 | `modify_asana_task` | `task_ref`, `description?`, `due_date?` | Update a task's title and/or due date |
 
-`task_ref` accepts the same syntax as `asana_agent.py`: row ID, ordinal, GID, partial title, or `top N`.
+`task_ref` accepts row ID, ordinal, GID, partial title, or `top N`.
 
 `list_asana_tasks` and `close_asana_task` cache the most recently fetched task list in module state so consecutive calls within a session avoid redundant network round-trips.
 
@@ -197,7 +108,7 @@ Claude Code picks this up automatically. The four tools appear as `mcp__asana__c
 
 ---
 
-## svcnow_a_challenge.py — Credential Validation Helper
+## preflight_checker.py — Credential Validation Helper
 
 Runs three sequential validation checks against the Asana API to confirm credentials and connectivity before using the main tools.
 
@@ -208,7 +119,7 @@ Runs three sequential validation checks against the Asana API to confirm credent
 | 3 | Asana SDK `UsersApi` + `WorkspaceMembershipsApi` | Full user record and workspace membership list |
 
 ```bash
-uv run python svcnow_a_challenge.py
+uv run python preflight_checker.py
 ```
 
 Output is colored via `rich`.
@@ -217,7 +128,74 @@ Output is colored via `rich`.
 
 ## prototypes/
 
-Early exploration scripts kept for reference.
+Prototype and exploratory scripts kept for reference.
+
+### asana_basic_REPL_agent.py — Terminal Chatbot
+
+An interactive terminal chatbot built on `requests` and `rich`. Authenticates at startup, then accepts free-text commands in a REPL loop.
+
+#### Run
+
+```bash
+uv run python prototypes/asana_basic_REPL_agent.py
+```
+
+#### What it can do
+
+| Command examples | Action |
+|---|---|
+| `create a task` | Prompts for description and due date, then creates the task |
+| `show active tasks`, `list`, `display open tasks` | Lists active tasks as a rich table |
+| `close the first task`, `close 002`, `complete 1214982880426742` | Marks one or more tasks complete |
+| `mark done top 3` | Closes the first three tasks in the list |
+| `goodbye`, `quit`, `exit` | Exits |
+
+Tasks are displayed in a table with columns: **Row ID**, **Asana Task id**, **Task title**.
+
+#### Supported due-date formats
+
+```
+today           tomorrow        next week
+3 days from now
+05/22/2026      5/22/26         2026-05-22
+May 22, 2026    May 22 2026
+```
+
+#### Task selection syntax
+
+Tasks can be identified by:
+- **Row ID**: `001`, `2`, `003`
+- **Ordinal**: `first`, `second`, `third` … `tenth`
+- **Positional suffix**: `1st`, `2nd`, `3rd`
+- **Asana task GID**: full numeric GID
+- **Title**: exact or partial match (disambiguated interactively if ambiguous)
+- **Batch**: `top 3`, `top 5`
+
+---
+
+### asana_full_REPL_copilot.py — SDK-based REPL Copilot
+
+A conversational REPL built on the **official Asana Python SDK** (`asana>=5.2.4`). Uses a layered architecture — a storage-agnostic `Copilot` conversation layer over an `AsanaStore` data layer — and runs in interactive mode.
+
+#### Run
+
+```bash
+uv run python prototypes/asana_full_REPL_copilot.py
+```
+
+Requires `ASANA_TOKEN` and `ASANA_PROJECT_GID` in the environment (or `.env`).
+
+#### Features
+
+- **Multi-turn task creation**: inline title extraction from `create a task called X`, or step-by-step prompting if no title is found.
+- **Due-date parsing**: `today`, `tomorrow`, `tmrw`, `next week`, `YYYY-MM-DD`.
+- **List open tasks**: fetches all non-completed tasks and prints GID, name, and due date.
+- **Close a task**: keyword-matches the user's message against open task titles.
+- **Clean SDK shutdown**: explicitly closes the Asana SDK thread pool to prevent hang on exit.
+
+---
+
+### Early exploration scripts
 
 | File | What it does |
 |---|---|
@@ -258,8 +236,8 @@ Declared in `pyproject.toml` (Python 3.13+):
 
 | Package | Purpose |
 |---|---|
-| `asana>=5.2.4` | Official Asana SDK (used by `asana_REPL_copilot.py` and `svcnow_a_challenge.py`) |
+| `asana>=5.2.4` | Official Asana SDK (used by `asana_full_REPL_copilot.py` and `preflight_checker.py`) |
 | `fastmcp>=2.13.0` | MCP server framework |
 | `python-dotenv>=1.2.1` | `.env` file loading |
-| `requests>=2.34.2` | HTTP client for `asana_agent.py` and `asana_mcp_server.py` |
+| `requests>=2.34.2` | HTTP client for `asana_basic_REPL_agent.py` and `asana_mcp_server.py` |
 | `rich>=15.0.0` | Colored terminal output |
