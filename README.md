@@ -2,6 +2,11 @@
 
 A collection of tools for working with a specific Asana project via the Asana REST API. The repo contains three runnable interfaces — a terminal chatbot (`asana_agent.py`), a REPL copilot backed by the official Asana SDK (`asana_REPL_copilot.py`), and a FastMCP server for Claude Code / AI agent use (`asana_mcp_server.py`) — plus a credential validation helper and a set of early prototypes.
 
+
+## LOOM Demo video
+https://www.loom.com/share/70620a8a683448c6b0cb7883f977769a
+
+
 ## Target Asana Project
 
 | | |
