@@ -51,13 +51,17 @@ class AsanaStore:
 # --------------------------------------------------------------------------
 # Conversation layer: intent + multi-turn state. Storage-agnostic.
 # --------------------------------------------------------------------------
+# simulated Agent harness
+# - No LLM, No NLP, No Agentic API calls, No Semantic logic
+# - we're not even doing SciKit-Learn NLTK/classifier API's
+#
 class Copilot:
     CREATE_TRIGGERS = ('create', 'add', 'new')
     COMPLETE_WORDS  = ('close', 'complete', 'finish', 'resolve', 'done')
     STOPWORDS = {
         'the', 'a', 'an', 'to', 'for', 'of', 'and', 'or', 'can', 'we', 'you',
         'i', 'is', 'are', 'one', 'that', 'this', 'it', 'please', 'task',
-        'tasks', 'my', 'do', 'close',
+        'tasks', 'my', 'do',
     }
 
     def __init__(self, store):
@@ -181,7 +185,7 @@ class Copilot:
             due = f" — due {t['due_on']}" if t.get('due_on') else ""
             print(f"  #{t['gid']}: {t['name']}{due}")
 
-    # ---- complete flow ----------------------------------------------------
+    # ---- clsoe / complete flow ----------------------------------------------------
     def _complete_task(self, text):
         try:
             open_tasks = self.store.list_open_tasks()
@@ -278,13 +282,14 @@ def render_turn(message):
 
 
 try:
-    # Phase 1: replay the scripted demo
-    for test_message in TEST_FEED:
-        print(USER_PROMPT, end='')
-        print(test_message)
-        render_turn(test_message)
+    # TESTING - Phase 1: replay the scripted demo
+    #for test_message in TEST_FEED:
+    #    print(USER_PROMPT, end='')
+    #    print(test_message)
+    #    render_turn(test_message)
 
     # Phase 2: interactive
+    print (f"\n[COPILOT]\nWelcome to the Asana Copilot. How can I help you with Asana today?\n")
     while True:
         try:
             next_turn = input(USER_PROMPT)
