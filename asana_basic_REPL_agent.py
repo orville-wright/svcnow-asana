@@ -20,7 +20,7 @@ IMPLEMENTED_SECTION_NAME = "Implemented"
 
 console = Console()
 
-
+# ##################################
 @dataclass(frozen=True)
 class TaskSummary:
     list_number: int
@@ -99,7 +99,7 @@ class AsanaClient:
         payload = {"data": {"completed": True}}
         return self._request("PUT", f"/tasks/{task_gid}", json=payload).get("data", {})
 
-
+# #############################
 def get_token() -> str:
     token = os.environ.get("ASANA_TOKEN", "").strip()
     if token:
@@ -111,6 +111,7 @@ def get_token() -> str:
         sys.exit(1)
     return token
 
+# ##############################################
 
 def prompt_user(prompt_text: str) -> str:
     if sys.stdin.isatty():
@@ -233,6 +234,7 @@ def consume_escape_sequence() -> None:
         if char.isalpha() or char == "~":
             return
 
+# ##############################
 
 def parse_due_date(value: str, today: date | None = None) -> date:
     base = today or date.today()
@@ -274,6 +276,10 @@ def detect_intent(message: str) -> str:
     if not text:
         return "unknown"
 
+    # hard coded fuzzy logic input patterns 
+    # - an LLM is 99% better at this NLP, but since we're manually builing the REPL ourself,
+    # we have to handle this pattern matching manually.
+    # - could do an LLM API to manage this, but thats still manuall processing
     exit_terms = ("exit", "quit", "leave", "goodbye", "bye", "end", "stop")
     if any(re.search(rf"\b{term}\b", text) for term in exit_terms):
         return "exit"
@@ -310,6 +316,7 @@ def detect_intent(message: str) -> str:
 
     return "unknown"
 
+# ######################################
 
 def is_active_task(task: dict[str, Any]) -> bool:
     if task.get("completed"):
@@ -332,9 +339,9 @@ def summarize_active_tasks(tasks: list[dict[str, Any]]) -> list[TaskSummary]:
 
 
 def display_tasks(tasks: list[TaskSummary]) -> None:
-    console.print("=" * 48)
-    console.print("       Active Asana tasks")
-    console.print("=" * 48)
+    # console.print("=" * 48)
+    console.print("\n[ ASANA AGENT ]\n\tHere's a list of your current Asana tasks...\n")
+    #console.print("=" * 48)
 
     if not tasks:
         console.print("[yellow]No active Asana tasks found.[/yellow]")
@@ -350,7 +357,10 @@ def display_tasks(tasks: list[TaskSummary]) -> None:
 
     console.print(table)
 
-
+# #############################################
+# more manual fuzzy logic pattern matching because we're manually building the REPL outself
+# and not using an LLM or Agent Harness to handle the NLP conversation input
+#
 def ordinal_to_number(text: str) -> int | None:
     words = {
         "first": 1,
@@ -374,6 +384,7 @@ def ordinal_to_number(text: str) -> int | None:
 
     return None
 
+# #######################################
 
 def select_tasks(identifier: str, tasks: list[TaskSummary]) -> tuple[list[TaskSummary], bool]:
     text = identifier.strip().lower()
@@ -422,32 +433,32 @@ def resolve_close_targets(identifier: str, tasks: list[TaskSummary]) -> list[Tas
 
 
 def handle_create(client: AsanaClient) -> None:
-    description = prompt_user("Whats the description of the task?").strip()
+    description = prompt_user("\n[ ASANA AGENT ]\n\tWhats the description of the task?\n").strip()
     while not description:
         description = prompt_user("Please enter a task description").strip()
 
     while True:
-        due_text = prompt_user("When is that task due by?").strip()
+        due_text = prompt_user("\n[ ASANA AGENT ]\n\tWhen is that task due by?\n").strip()
         try:
             due_on = parse_due_date(due_text)
             break
         except ValueError as exc:
             console.print(f"[red]{exc}[/red]")
 
-    console.print("preparing task...")
+    console.print("\n[ ASANA AGENT ]\n\tpreparing task...\n")
     try:
         task = client.create_task(description, due_on)
-        console.print(f"submitted task to workspace {WORKSPACE_GID}")
-        console.print(f"[green]successfully submitted task {task.get('gid', 'unknown')}[/green]")
+        console.print(f"\n[ ASANA AGENT ]\n\tsubmitted task to workspace {WORKSPACE_GID}\n")
+        console.print(f"\n[ ASANA AGENT ]\n\t[green]successfully submitted task {task.get('gid', 'unknown')}[/green]\n")
     except AsanaApiError as exc:
-        console.print(f"[red]failed to submit task: {exc}[/red]")
+        console.print(f"n[ ASANA AGENT ]\n\t[red]failed to submit task: {exc}[/red]\n")
 
 
 def handle_list(client: AsanaClient) -> list[TaskSummary]:
     try:
         tasks = summarize_active_tasks(client.get_project_tasks())
     except AsanaApiError as exc:
-        console.print(f"[red]failed to list tasks: {exc}[/red]")
+        console.print(f"\n[ ASANA AGENT ]\n\t[red]failed to list tasks: {exc}[/red]\n")
         return []
 
     display_tasks(tasks)
@@ -471,23 +482,26 @@ def handle_close(client: AsanaClient, recent_tasks: list[TaskSummary], message: 
 
     identifier = strip_close_words(message)
     if not identifier:
-        identifier = prompt_user("which task do you want to close?").strip()
+        identifier = prompt_user("\n[ ASANA AGENT ]\n\twhich task do you want to close?\n").strip()
 
     targets = resolve_close_targets(identifier, tasks)
     while not targets:
-        console.print("[yellow]I could not find a matching task.[/yellow]")
-        identifier = prompt_user("which task do you want to close?").strip()
+        console.print("\n[ ASANA AGENT ]\n\t[yellow]I could not find a matching task.[/yellow]\n")
+        identifier = prompt_user("\n[ ASANA AGENT ]\n\twhich task do you want to close?\n").strip()
         targets = resolve_close_targets(identifier, tasks)
 
     for task in targets:
         try:
             client.complete_task(task.gid)
-            console.print(f"[green]closed task {task.gid} | {task.title}[/green]")
+            console.print(f"\n[ ASANA AGENT ]\n\t[green]closed task {task.gid} | {task.title}[/green]\n")
         except AsanaApiError as exc:
-            console.print(f"[red]failed to close task {task.gid}: {exc}[/red]")
+            console.print(f"\n[ ASANA AGENT ]\n\t[red]failed to close task {task.gid}: {exc}[/red]\n")
 
     return [task for task in tasks if task not in targets]
 
+
+# ###################################
+# main REPL input loop
 
 def run_chat() -> None:
     token = get_token()
@@ -501,7 +515,7 @@ def run_chat() -> None:
 
     name = user.get("name") or "there"
     console.print(f"[green]Authenticated as {name}.[/green]")
-    console.print("hello, how can I help you in Asana today?")
+    console.print("\n[ ASANA AGENT ]\n\tHello, how can I help you in Asana today?\n")
 
     recent_tasks: list[TaskSummary] = []
     while True:
@@ -513,19 +527,19 @@ def run_chat() -> None:
             return
         if intent == "create":
             handle_create(client)
-            console.print("Is there anything more I can help you with?")
+            console.print("\n[ ASANA AGENT ]\n\tIs there anything more I can help you with?\n")
             continue
         if intent == "list":
             recent_tasks = handle_list(client)
-            console.print("Is there anything more I can help you with?")
+            console.print("\n[ ASANA AGENT ]\n\tIs there anything more I can help you with?\n")
             continue
         if intent == "close":
             recent_tasks = handle_close(client, recent_tasks, message)
-            console.print("Is there anything more I can help you with?")
+            console.print("\n[ ASANA AGENT ]\n\tIs there anything more I can help you with?\n")
             continue
 
         console.print(
-            "I can create a task, list active tasks, close a task, or exit. What would you like to do?"
+            "\n[ ASANA AGENT ]\n\tI can create a task, list active tasks, close a task, or exit. What would you like to do?\n"
         )
 
 
