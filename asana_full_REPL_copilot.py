@@ -56,7 +56,7 @@ class AsanaStore:
 # - we're not even doing SciKit-Learn NLTK/classifier API's
 #
 class Copilot:
-    CREATE_TRIGGERS = ('create', 'add', 'new')
+    CREATE_TRIGGERS = ('create', 'add', 'new', 'create new task', 'create a task')
     COMPLETE_WORDS  = ('close', 'complete', 'finish', 'resolve', 'done')
     STOPWORDS = {
         'the', 'a', 'an', 'to', 'for', 'of', 'and', 'or', 'can', 'we', 'you',
@@ -273,7 +273,7 @@ TURN_BREAK = '-------------------'
 
 def render_turn(message):
     print(TURN_BREAK)
-    print('[COPILOT]')
+    print('\n[COPILOT]\n')
     try:
         execute_turn(message)
     except Exception as e:
