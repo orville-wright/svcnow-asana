@@ -66,14 +66,17 @@ If `ASANA_TOKEN` is not set when running the prototype scripts, they prompt for 
 ---
 
 ## The main solution
-This is my solution to the Take Home Challenge.
+My final solution to the Take Home Challenge is the asana_mcp_server.py
 
 
 ### How to run
 - Please install the MCP server into Claude Code or OpenAI Codex
-   - Simple ask CC to install the asana_mcp_server.py for you
-   - Check the the 4 MCP tools are now available (you may need to exit/restart or force a Refresh)
+   - Simply ask Claude (or Codex) to install the asana_mcp_server.py for you
+   - Check that 4 MCP new tools are now available... (you may need to exit/restart or force a Refresh)
    - You can now conversationally interact with Asana project tasks. The new tools will do all the work for you.
+   - You will need to add the ASANA env vars to the .env file
+   - All of that info is provided in the serviceNOW_challenge_1 PDF doc. - (I will securely nuke that info later)
+
 
 ## Asana_mcp_server.py — FastMCP Stdio Server
 
