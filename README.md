@@ -65,11 +65,21 @@ If `ASANA_TOKEN` is not set when running the prototype scripts, they prompt for 
 
 ---
 
-## asana_mcp_server.py — FastMCP Stdio Server
+## The main solution
+This is my solution to the Take Home Challenge.
+
+
+### How to run
+- Please install the MCP server into Claude Code or OpenAI Codex
+   - Simple ask CC to install the asana_mcp_server.py for you
+   - Check the the 4 MCP tools are now available (you may need to exit/restart or force a Refresh)
+   - You can now conversationally interact with Asana project tasks. The new tools will do all the work for you.
+
+## Asana_mcp_server.py — FastMCP Stdio Server
 
 A [FastMCP](https://github.com/jlowin/fastmcp) stdio MCP server that exposes four tools for use with Claude Code, OpenAI Codex, or any MCP-compatible AI agent.
 
-### Tools
+### MCP Tools
 
 | Tool | Parameters | Description |
 |---|---|---|
@@ -82,11 +92,7 @@ A [FastMCP](https://github.com/jlowin/fastmcp) stdio MCP server that exposes fou
 
 `list_asana_tasks` and `close_asana_task` cache the most recently fetched task list in module state so consecutive calls within a session avoid redundant network round-trips.
 
-### Run
 
-```bash
-uv run python asana_mcp_server.py
-```
 
 ### Claude Code integration
 
@@ -107,6 +113,8 @@ The repo ships with `.mcp.json` pre-configured:
 Claude Code picks this up automatically. The four tools appear as `mcp__asana__create_asana_task`, `mcp__asana__list_asana_tasks`, `mcp__asana__close_asana_task`, and `mcp__asana__modify_asana_task`.
 
 ---
+
+# Early phase prototype tools and V1, V2 experiments
 
 ## preflight_checker.py — Credential Validation Helper
 
