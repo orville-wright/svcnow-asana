@@ -1,4 +1,4 @@
-# Asana Challenge
+# ServiceNOW - Asana Copilot Challenge
 
 A collection of tools for working with a specific Asana project via the Asana REST API. The repo contains one production-ready MCP server (`asana_mcp_server.py`) and two prototype conversational interfaces — a terminal chatbot and an SDK-backed REPL copilot — both housed in `prototypes/`, plus a credential validation helper and a set of early exploration scripts.
 
@@ -66,21 +66,26 @@ If `ASANA_TOKEN` is not set when running the prototype scripts, they prompt for 
 ---
 
 ## The main solution
-My final solution to the Take Home Challenge is the asana_mcp_server.py
+My final solution to the Take Home Challenge was to build a smart Asana MCP server (asana_mcp_server.py).
 
 
 ### How to run
-- Please install the MCP server into Claude Code or OpenAI Codex
-   - Simply ask Claude (or Codex) to install the asana_mcp_server.py for you
-   - Check that 4 MCP new tools are now available... (you may need to exit/restart or force a Refresh)
-   - You can now conversationally interact with Asana project tasks. The new tools will do all the work for you.
+- clone the repo to a linux system
+   - note:
+   - Its developed in python, so it will work in a Windows python env
+   - I have only tested it in a Linux env
+- Install the MCP server into Claude Code or OpenAI Codex
+   - Simply ask Claude (or Codex) to install the asana_mcp_server.py for you...
+   - Check that 4 new MCP tools are now available... (you may need to exit/restart or force a Refresh)
+   - You can now conversationally interact with Asana project tasks. The new MCP tools will do all the work for you.
    - You will need to add the ASANA env vars to the .env file
-   - All of that info is provided in the serviceNOW_challenge_1 PDF doc. - (I will securely nuke that info later)
+   - An temp Asana Toekn is provided in the serviceNOW_challenge_1 PDF doc. - Its points to my account. (I will nuke that info later)
 
 
 ## Asana_mcp_server.py — FastMCP Stdio Server
 
-A [FastMCP](https://github.com/jlowin/fastmcp) stdio MCP server that exposes four tools for use with Claude Code, OpenAI Codex, or any MCP-compatible AI agent.
+asana_mcp_server.py is a [FastMCP](https://github.com/jlowin/fastmcp) stdio MCP server that exposes 4 tools for use with Claude Code, OpenAI Codex, or any MCP-compatible AI agent.
+
 
 ### MCP Tools
 
