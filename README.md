@@ -13,7 +13,7 @@ https://www.loom.com/share/70620a8a683448c6b0cb7883f977769a
 |---|---|
 | Workspace GID | `1214958615680522` |
 | Project GID | `1214982995972383` |
-| Active task filter | Not completed **and** not in a section named `Implemented` |
+
 
 ---
 
@@ -70,9 +70,9 @@ My final solution to the Take Home Challenge was to build a smart Asana MCP serv
 
 
 ### How to run
-- clone the repo to a linux system
+- clone the repo to yoyur linux system
    - note:
-   - Its developed in python, so it will work in a Windows python env
+   - (Its developed in python, so it will work in a Windows python env also)
    - I have only tested it in a Linux env
 - Install the MCP server into Claude Code or OpenAI Codex
    - Simply ask Claude (or Codex) to install the asana_mcp_server.py for you...
@@ -104,7 +104,7 @@ asana_mcp_server.py is a [FastMCP](https://github.com/jlowin/fastmcp) stdio MCP 
 
 ### Claude Code integration
 
-The repo ships with `.mcp.json` pre-configured:
+The repo ships with `.mcp.json` MCP config file pre-configured:
 
 ```json
 {
@@ -191,7 +191,10 @@ Tasks can be identified by:
 
 ### asana_full_REPL_copilot.py — SDK-based REPL Copilot
 
-A conversational REPL built on the **official Asana Python SDK** (`asana>=5.2.4`). Uses a layered architecture — a storage-agnostic `Copilot` conversation layer over an `AsanaStore` data layer — and runs in interactive mode.
+A conversational terminal REPL built on the **official Asana Python SDK** (`asana>=5.2.4`). Uses a layered architecture — a storage-agnostic `Copilot` conversation layer over an `AsanaStore` data layer — and runs in interactive mode.
+
+- 50% Hand-coded. 
+- I built this as a prototype to evaluate how easy/difficult it would be to fully emulate a REPL without leveraging an agentic framework/harness. 
 
 #### Run
 
