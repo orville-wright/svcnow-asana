@@ -79,7 +79,7 @@ My final solution to the Take Home Challenge was to build a smart Asana MCP serv
    - Check that 4 new MCP tools are now available... (you may need to exit/restart or force a Refresh)
    - You can now conversationally interact with Asana project tasks. The new MCP tools will do all the work for you.
    - You will need to add the ASANA env vars to the .env file
-   - An temp Asana Toekn is provided in the serviceNOW_challenge_1 PDF doc. - Its points to my account. (I will nuke that info later)
+   - A temp Asana Token is provided in the serviceNOW_challenge_1 PDF doc. - Its points to my account. (I will nuke that info later)
 
 
 ## Asana_mcp_server.py — FastMCP Stdio Server
